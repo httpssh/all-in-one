@@ -311,8 +311,8 @@ def get_video_info():
 
     except Exception as e:
         print(f"Downloader Error: {e}")
-        # Vercel IPs are sometimes blocked by YouTube. This is common.
-        return jsonify({"error": "Server failed to reach media. Try a different link."}), 500
+        # DEBUG MODE: Send the actual error string to the frontend
+        return jsonify({"error": str(e)}), 500
 
 
 # --- PROFILE UPDATE ROUTE ---
