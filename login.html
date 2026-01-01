@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - All-In-One App</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        /* (Keep your existing styles here - omitted for brevity) */
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --card-bg: #1e293b;
+            --nav-bg: rgba(15, 23, 42, 0.9);
+            --border-color: #334155;
+            --input-bg: #0f172a;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --accent-color: #2563eb;
+            --card-bg: #ffffff;
+            --nav-bg: rgba(255, 255, 255, 0.9);
+            --border-color: #cbd5e1;
+            --input-bg: #f8fafc;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+            text-align: center;
+        }
+
+        .card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .card p {
+            margin-bottom: 2rem;
+            opacity: 0.7;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn-fill {
+            width: 100%;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .btn-fill:hover {
+            opacity: 0.9;
+        }
+
+        .links {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .links a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .theme-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        /* Reuse switch styles from previous steps */
+        .theme-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            display: inline-block;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1e293b;
+            border-radius: 34px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        [data-theme="light"] .slider {
+            background-color: #e2e8f0;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 3px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        [data-theme="light"] .slider:before {
+            background-color: #1e293b;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(29px);
+        }
+
+        .icon {
+            font-size: 14px;
+            z-index: 1;
+        }
+
+        [data-theme="light"] .icon {
+            color: #1e293b;
+        }
+
+        .moon {
+            margin-left: auto;
+        }
+
+        .sun {
+            margin-right: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="theme-wrapper">
+        <label class="theme-switch">
+            <input type="checkbox" id="checkbox" onclick="toggleTheme()">
+            <span class="slider"><span class="icon sun">☀️</span><span class="icon moon">🌙</span></span>
+        </label>
+    </div>
+
+    <div class="auth-container">
+        <div class="card">
+            <h2>Welcome Back</h2>
+            <p>Enter your credentials to access your dashboard.</p>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email or Username</label>
+                    <input type="text" id="email" required placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" id="loginBtn" class="btn-fill">Log In</button>
+            </form>
+
+            <div class="links">
+                <a href="forgot_password.html">Forgot Password?</a>
+                <br><br>
+                <span>Don't have an account? <a href="signup.html">Sign Up</a></span>
+                <br>
+                <a href="index.html" style="font-size: 0.8rem; opacity: 0.7;">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const checkbox = document.getElementById('checkbox');
+            html.setAttribute('data-theme', checkbox.checked ? 'light' : 'dark');
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const emailInput = document.getElementById('email').value;
+            const passwordInput = document.getElementById('password').value;
+
+            try {
+                btn.disabled = true;
+                btn.innerText = "Logging in...";
+
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email_or_username: emailInput,
+                        password: passwordInput
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Save user info to LocalStorage so we can use it on the dashboard
+                    localStorage.setItem('user', JSON.stringify(result));
+                    // Redirect to dashboard (We will create this page next)
+                    // Check if admin, redirect to admin page
+                    if (result.is_admin) {
+                        window.location.href = "admin.html";
+                    } else {
+                        window.location.href = "dashboard.html";
+                    }
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Login failed. Check your connection.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Log In";
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - All-In-One</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --card-bg: #f1f5f9;
+            --accent-color: #2563eb;
+            --border-color: #cbd5e1;
+            --input-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s;
+        }
+
+        /* Nav (Removed Theme Button) */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .btn-logout {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-settings {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+        }
+
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 1.5rem;
+        }
+
+        .btn-save {
+            background: var(--accent-color);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            nav {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-controls {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">All-In-One</div>
+        <div class="nav-controls">
+            <span id="usernameDisplay" style="font-weight: bold; display: none;">User</span>
+            <button class="btn-settings" onclick="openSettings()">Profile</button>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 id="welcomeText">Welcome Back!</h1>
+        <div class="grid">
+            <a href="calendar.html" class="card">
+                <div class="icon">📅</div>
+                <h3>Smart Calendar</h3>
+                <p>Manage events & see admin updates.</p>
+            </a>
+            <a href="downloader.html" class="card">
+                <div class="icon">⬇️</div>
+                <h3>Media Downloader</h3>
+                <p>Download from YT, Insta & more.</p>
+            </a>
+            <a href="games.html" class="card">
+                <div class="icon">🎮</div>
+                <h3>Mini Games</h3>
+                <p>Play Tic-Tac-Toe & Uno.</p>
+            </a>
+            <div class="card mystery" style="opacity: 0.5;">
+                <div class="icon">❓</div>
+                <h3>Coming Soon</h3>
+                <p>New feature in development.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2>Edit Profile</h2>
+            <div class="form-group"><label>Full Name</label><input type="text" id="editName"></div>
+            <div class="form-group"><label>Username</label><input type="text" id="editUsername"></div>
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 15px 0;">
+            <div class="form-group"><label>New Password (Optional)</label><input type="password" id="editNewPass"></div>
+            <div class="form-group"><label style="color: var(--accent-color);">Current Password (Required)</label><input
+                    type="password" id="editCurrentPass"></div>
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+                <button class="btn-save" onclick="saveProfile()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        #settings-widget {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 9999;
+            font-family: 'Segoe UI', sans-serif
+        }
+
+        #settings-fab {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+            transition: transform .3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center
+        }
+
+        #settings-fab:hover {
+            transform: rotate(90deg) scale(1.1)
+        }
+
+        #settings-menu {
+            position: absolute;
+            bottom: 70px;
+            left: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            width: 180px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .3);
+            backdrop-filter: blur(10px)
+        }
+
+        #settings-menu.show {
+            display: flex;
+            animation: slideUp .3s cubic-bezier(.18, .89, .32, 1.28)
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(.9)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-color);
+            font-size: .9rem;
+            font-weight: 700
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: .4s;
+            border-radius: 50%
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent-color)
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(18px)
+        }
+    </style>
+    <div id="settings-widget">
+        <div id="settings-menu">
+            <div class="setting-item"><span>Dark Mode</span><label class="switch"><input type="checkbox"
+                        id="theme-toggle-input" onchange="toggleGlobalTheme()"><span class="slider"></span></label>
+            </div>
+            <div style="font-size:.7rem;opacity:.5;text-align:center;margin-top:5px">v1.0</div>
+        </div><button id="settings-fab" onclick="toggleMenu()">⚙️</button>
+    </div>
+    <script>function toggleMenu() { document.getElementById("settings-menu").classList.toggle("show") } function toggleGlobalTheme() { const e = document.documentElement, t = e.getAttribute("data-theme"), n = "dark" === t ? "light" : "dark"; e.setAttribute("data-theme", n), localStorage.setItem("theme", n), document.getElementById("theme-toggle-input").checked = "dark" === n } const saved = localStorage.getItem("theme") || "dark"; document.documentElement.setAttribute("data-theme", saved), document.getElementById("theme-toggle-input").checked = "dark" === saved, document.addEventListener("click", function (e) { const t = document.getElementById("settings-widget"); t.contains(e.target) || document.getElementById("settings-menu").classList.remove("show") });</script>
+
+    <script>
+        // ... (Keep your existing Dashboard JS here: User Auth, Profile Editing, etc.) ...
+        let user = JSON.parse(localStorage.getItem('user'));
+        if (!user) { window.location.href = 'login.html'; } else { updateUI(); }
+        function updateUI() { document.getElementById('usernameDisplay').innerText = user.name; document.getElementById('usernameDisplay').style.display = 'inline'; document.getElementById('welcomeText').innerText = `Welcome back, ${user.name}!`; }
+        function openSettings() { document.getElementById('editName').value = user.name; document.getElementById('editUsername').value = user.username; document.getElementById('settingsModal').style.display = 'flex'; }
+        function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+        async function saveProfile() { /* ... keep existing save logic ... */ }
+        function logout() { localStorage.removeItem('user'); window.location.href = 'index.html'; }
+    </script>
+</body>
+
+</html>

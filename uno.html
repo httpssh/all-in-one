@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uno</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --border: #334155;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --card-bg: #f1f5f9;
+            --accent-color: #2563eb;
+            --border: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            margin: 0;
+            transition: background 0.3s;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+
+        .theme-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            font-size: 1.2rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .menu {
+            text-align: center;
+            margin-top: 10vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Game Area */
+        #game-area {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .opponent-area {
+            opacity: 0.7;
+            transform: scale(0.8);
+            margin-bottom: 10px;
+        }
+
+        .discard-area {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        /* Cards */
+        .hand {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+            min-height: 100px;
+            padding: 10px;
+        }
+
+        .card {
+            width: 50px;
+            height: 80px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1rem;
+            border: 2px solid white;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            z-index: 10;
+        }
+
+        .card.red {
+            background: #ef4444;
+        }
+
+        .card.blue {
+            background: #3b82f6;
+        }
+
+        .card.green {
+            background: #22c55e;
+        }
+
+        .card.yellow {
+            background: #eab308;
+        }
+
+        .card.black {
+            background: #1f2937;
+            border-color: #a855f7;
+        }
+
+        .card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(0.8);
+        }
+
+        /* Turn Indicator */
+        .turn-badge {
+            background: var(--card-bg);
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .turn-badge.active {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* PvP Curtain */
+        #curtain {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            z-index: 50;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Modal for Wild Color */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .color-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .color-btn {
+            width: 80px;
+            height: 80px;
+            border: 2px solid white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <a href="games.html" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">← Back</a>
+        <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    </div>
+
+    <div id="menu" class="menu">
+        <h1>Uno</h1>
+        <button onclick="startGame('PvB')">Player vs Bot</button>
+        <button onclick="startGame('PvP')" style="background: #8b5cf6;">Pass & Play (PvP)</button>
+    </div>
+
+    <div id="game-area">
+        <div class="opponent-area">
+            <div class="turn-badge" id="badge-p2">Opponent</div>
+            <div class="hand" id="hand-p2"></div>
+        </div>
+
+        <div class="discard-area">
+            <div id="discard-pile"></div>
+            <button onclick="drawCard()"
+                style="background: var(--card-bg); border: 1px solid var(--border); color: var(--text-color);">Draw
+                (+1)</button>
+        </div>
+        <div id="game-msg" style="font-weight: bold; height: 20px; color: var(--accent-color); text-align: center;">
+        </div>
+
+        <div style="width:100%; text-align:center;">
+            <div class="turn-badge" id="badge-p1">You</div>
+            <div class="hand" id="hand-p1"></div>
+        </div>
+    </div>
+
+    <div id="wildModal" class="modal">
+        <div class="color-options">
+            <div class="color-btn" style="background: #ef4444;" onclick="pickColor('red')"></div>
+            <div class="color-btn" style="background: #3b82f6;" onclick="pickColor('blue')"></div>
+            <div class="color-btn" style="background: #22c55e;" onclick="pickColor('green')"></div>
+            <div class="color-btn" style="background: #eab308;" onclick="pickColor('yellow')"></div>
+        </div>
+    </div>
+
+    <div id="curtain">
+        <h2>Pass device to next player</h2>
+        <br>
+        <button onclick="hideCurtain()">Ready</button>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateIcon();
+        }
+        function updateIcon() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.getElementById('themeBtn').innerText = theme === 'dark' ? '🌙' : '☀️';
+        }
+        updateIcon();
+
+        // --- UNO GAME LOGIC ---
+        const colors = ['red', 'blue', 'green', 'yellow'];
+        const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '🚫', '⇄', '+2'];
+        let deck = [], p1Hand = [], p2Hand = [], discard = null;
+        let turn = 1;
+        let mode = 'PvB';
+        let pendingWildIndex = -1;
+
+        function startGame(selectedMode) {
+            mode = selectedMode;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('game-area').style.display = 'flex';
+
+            deck = [];
+            colors.forEach(c => {
+                values.forEach(v => {
+                    deck.push({ color: c, val: v, type: 'normal' });
+                    if (v !== '0') deck.push({ color: c, val: v, type: 'normal' });
+                });
+            });
+            for (let i = 0; i < 4; i++) {
+                deck.push({ color: 'black', val: '🌈', type: 'wild' });
+                deck.push({ color: 'black', val: '+4', type: 'wild' });
+            }
+            deck.sort(() => Math.random() - 0.5);
+
+            p1Hand = deck.splice(0, 7);
+            p2Hand = deck.splice(0, 7);
+            do { discard = deck.pop(); } while (discard.color === 'black');
+
+            renderGame();
+            if (mode === 'PvB') setTimeout(checkBotTurn, 1000);
+        }
+
+        function renderGame() {
+            document.getElementById('badge-p1').classList.toggle('active', turn === 1);
+            document.getElementById('badge-p2').classList.toggle('active', turn === 2);
+            document.getElementById('badge-p2').innerText = mode === 'PvB' ? "Bot" : "Player 2";
+            document.getElementById('badge-p1').innerText = mode === 'PvB' ? "You" : "Player 1";
+
+            const pile = document.getElementById('discard-pile');
+            pile.innerHTML = '';
+            pile.appendChild(createCardUI(discard));
+
+            renderHand('hand-p1', p1Hand, 1);
+            renderHand('hand-p2', p2Hand, 2);
+        }
+
+        function renderHand(divId, hand, playerNum) {
+            const div = document.getElementById(divId);
+            div.innerHTML = '';
+
+            if (mode === 'PvB' && playerNum === 2) {
+                hand.forEach(() => {
+                    const c = document.createElement('div');
+                    c.className = 'card';
+                    c.style.background = '#333';
+                    c.innerText = 'UNO';
+                    div.appendChild(c);
+                });
+                return;
+            }
+
+            hand.forEach((card, i) => {
+                const ui = createCardUI(card);
+                const playable = (turn === playerNum) && isValid(card);
+                if (!playable) ui.classList.add('disabled');
+                ui.onclick = () => { if (playable) playCard(playerNum, i); };
+                div.appendChild(ui);
+            });
+        }
+
+        function createCardUI(card) {
+            const el = document.createElement('div');
+            el.className = `card ${card.color}`;
+            el.innerText = card.val;
+            return el;
+        }
+
+        function isValid(card) {
+            if (card.color === 'black') return true;
+            return card.color === discard.color || card.val === discard.val;
+        }
+
+        function playCard(playerNum, index) {
+            let hand = playerNum === 1 ? p1Hand : p2Hand;
+            const card = hand[index];
+
+            if (card.color === 'black') {
+                if (mode === 'PvB' && playerNum === 2) {
+                    card.color = colors[Math.floor(Math.random() * 4)];
+                    finalizePlay(playerNum, index);
+                } else {
+                    pendingWildIndex = index;
+                    document.getElementById('wildModal').style.display = 'flex';
+                    return;
+                }
+            } else {
+                finalizePlay(playerNum, index);
+            }
+        }
+
+        function pickColor(c) {
+            document.getElementById('wildModal').style.display = 'none';
+            let hand = turn === 1 ? p1Hand : p2Hand;
+            hand[pendingWildIndex].tempColor = c;
+            finalizePlay(turn, pendingWildIndex);
+        }
+
+        function finalizePlay(playerNum, index) {
+            let hand = playerNum === 1 ? p1Hand : p2Hand;
+            let playedCard = hand.splice(index, 1)[0];
+
+            if (playedCard.tempColor) playedCard.color = playedCard.tempColor;
+
+            discard = playedCard;
+
+            if (hand.length === 0) {
+                alert(`Player ${playerNum} Wins!`);
+                location.reload();
+                return;
+            }
+
+            let nextPlayer = playerNum === 1 ? 2 : 1;
+            let skipTurn = false;
+
+            if (playedCard.val === '🚫' || playedCard.val === '⇄') {
+                msg(`${playedCard.val} - Skipped!`);
+                skipTurn = true;
+            }
+            else if (playedCard.val === '+2') {
+                msg("+2! Draw 2.");
+                draw(nextPlayer, 2);
+                skipTurn = true;
+            }
+            else if (playedCard.val === '+4') {
+                msg("+4! Draw 4.");
+                draw(nextPlayer, 4);
+                skipTurn = true;
+            }
+
+            if (!skipTurn) turn = nextPlayer;
+            else turn = playerNum;
+
+            if (mode === 'PvP' && !skipTurn) {
+                document.getElementById('curtain').style.display = 'flex';
+            } else {
+                renderGame();
+                if (mode === 'PvB') setTimeout(checkBotTurn, 1000);
+            }
+        }
+
+        function drawCard() {
+            draw(turn, 1);
+            turn = turn === 1 ? 2 : 1;
+
+            if (mode === 'PvP') {
+                document.getElementById('curtain').style.display = 'flex';
+            } else {
+                renderGame();
+                if (mode === 'PvB') setTimeout(checkBotTurn, 1000);
+            }
+        }
+
+        function draw(playerNum, count) {
+            let hand = playerNum === 1 ? p1Hand : p2Hand;
+            for (let i = 0; i < count; i++) {
+                if (deck.length === 0) deck = [...deck, { color: 'red', val: '1' }];
+                hand.push(deck.pop());
+            }
+        }
+
+        function checkBotTurn() {
+            if (turn === 2 && mode === 'PvB') {
+                const idx = p2Hand.findIndex(c => isValid(c));
+                if (idx !== -1) playCard(2, idx);
+                else {
+                    msg("Bot draws");
+                    drawCard();
+                }
+            }
+        }
+
+        function hideCurtain() {
+            document.getElementById('curtain').style.display = 'none';
+            renderGame();
+        }
+
+        function msg(txt) {
+            const el = document.getElementById('game-msg');
+            el.innerText = txt;
+            setTimeout(() => el.innerText = '', 2000);
+        }
+    </script>
+</body>
+
+</html>

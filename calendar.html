@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Calendar</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --admin-color: #f59e0b;
+            --border-color: #334155;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --accent-color: #2563eb;
+            --admin-color: #d97706;
+            --card-bg: #f1f5f9;
+            --border-color: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls button {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .theme-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .home-btn {
+            text-decoration: none;
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .day-name {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            opacity: 0.7;
+        }
+
+        .day-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 100px;
+            padding: 5px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.2s;
+            overflow: hidden;
+            /* Prevents long text from breaking layout */
+        }
+
+        .day-card:hover {
+            border-color: var(--accent-color);
+        }
+
+        .day-number {
+            font-weight: bold;
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 0.9rem;
+        }
+
+        .today {
+            border: 2px solid var(--accent-color);
+        }
+
+        .empty {
+            background: transparent;
+            border: none;
+            cursor: default;
+        }
+
+        /* Event Tags */
+        .event-tag {
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 1.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            margin-bottom: 2px;
+            color: white;
+        }
+
+        .my-event {
+            background: var(--accent-color);
+        }
+
+        .admin-event {
+            background: var(--admin-color);
+            font-weight: bold;
+            border: 1px solid #b45309;
+        }
+
+        /* Legend */
+        .legend {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 350px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal input,
+        .modal textarea {
+            width: 100%;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 0.8rem;
+            border: none;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .btn-save {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .header-left {
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            .controls {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            .controls button {
+                flex: 1;
+                margin: 0 5px;
+            }
+
+            /* Tighten Grid */
+            .calendar-grid {
+                gap: 4px;
+            }
+
+            .day-name {
+                padding: 5px 0;
+                font-size: 0.8rem;
+            }
+
+            .day-card {
+                min-height: 70px;
+                padding: 2px;
+                border-radius: 4px;
+            }
+
+            .day-number {
+                font-size: 0.8rem;
+                top: 2px;
+                right: 4px;
+            }
+
+            /* Make events smaller on mobile */
+            .event-tag {
+                font-size: 0.6rem;
+                padding: 1px 2px;
+                margin-top: 1.4rem;
+                height: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-left">
+            <button onclick="toggleTheme()" id="themeBtn" class="theme-btn">🌙</button>
+            <div style="text-align: left; flex: 1; margin-left: 10px;">
+                <h2 id="monthYearDisplay" style="margin: 0; font-size: 1.2rem;">January 2026</h2>
+                <a id="backBtn" href="#" class="home-btn">← Back</a>
+            </div>
+        </div>
+        <div class="controls">
+            <button onclick="changeMonth(-1)">Prev</button>
+            <button onclick="changeMonth(1)">Next</button>
+        </div>
+    </header>
+
+    <div class="legend">
+        <div><span class="dot" style="background: var(--accent-color)"></span> Personal</div>
+        <div><span class="dot" style="background: var(--admin-color)"></span> Admin</div>
+    </div>
+
+    <div class="calendar-grid" id="calendar"></div>
+
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <h3 id="modalTitle" style="margin-top:0;">Add Event</h3>
+            <p id="selectedDateDisplay" style="opacity: 0.7; margin-bottom: 1rem;">...</p>
+            <input type="text" id="eventTitle" placeholder="Event Title">
+            <textarea id="eventDesc" placeholder="Description" rows="3"></textarea>
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeModal()">Close</button>
+                <button class="btn-save" id="saveBtn" onclick="saveEvent()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="viewModal">
+        <div class="modal-content">
+            <h3 id="viewTitle" style="margin-top:0;">Event Title</h3>
+            <p id="viewDate" style="opacity: 0.7; font-size: 0.9rem;"></p>
+            <div id="viewDesc"
+                style="margin: 1rem 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; min-height: 40px;">
+            </div>
+            <p id="viewAuthor" style="font-size: 0.8rem; color: var(--admin-color); font-weight: bold;"></p>
+
+            <div class="modal-btns">
+                <button class="btn-cancel"
+                    onclick="document.getElementById('viewModal').style.display='none'">Close</button>
+                <button class="btn-delete" id="deleteBtn" onclick="deleteEvent()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) window.location.href = 'login.html';
+
+        // 1. Admin/User Back Button Logic
+        const backBtn = document.getElementById('backBtn');
+        if (user.is_admin) {
+            backBtn.href = "admin.html";
+            backBtn.innerText = "← Admin Panel";
+        } else {
+            backBtn.href = "dashboard.html";
+            backBtn.innerText = "← Dashboard";
+        }
+
+        // 2. Theme Logic
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateIcon();
+        }
+        function updateIcon() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.getElementById('themeBtn').innerText = theme === 'dark' ? '🌙' : '☀️';
+        }
+        updateIcon();
+
+        // 3. Calendar Logic
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        let events = [];
+        let selectedDate = null;
+        let selectedEventId = null;
+
+        window.onload = () => { fetchEvents(); };
+
+        async function fetchEvents() {
+            try {
+                const res = await fetch('/api/calendar/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user.username })
+                });
+                events = await res.json();
+                renderCalendar();
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveEvent() {
+            const title = document.getElementById('eventTitle').value;
+            const desc = document.getElementById('eventDesc').value;
+            if (!title) return alert("Title required");
+
+            await fetch('/api/calendar/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: user.username,
+                    date: selectedDate,
+                    title: title,
+                    description: desc
+                })
+            });
+            closeModal();
+            fetchEvents();
+        }
+
+        async function deleteEvent() {
+            if (!confirm("Are you sure?")) return;
+
+            const res = await fetch('/api/calendar/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: selectedEventId, username: user.username })
+            });
+
+            if (res.ok) {
+                document.getElementById('viewModal').style.display = 'none';
+                fetchEvents();
+            } else {
+                alert("You cannot delete this event.");
+            }
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar');
+            const display = document.getElementById('monthYearDisplay');
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+            display.innerText = `${monthNames[currentMonth]} ${currentYear}`;
+            grid.innerHTML = '';
+
+            ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].forEach(day => {
+                grid.innerHTML += `<div class="day-name">${day}</div>`;
+            });
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-card empty"></div>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dayEvents = events.filter(e => e.date === dateStr);
+
+                let eventsHtml = '';
+                dayEvents.forEach(e => {
+                    const isAdminEvent = e.username === 'admin';
+                    const cssClass = isAdminEvent ? 'admin-event' : 'my-event';
+                    eventsHtml += `<span class="event-tag ${cssClass}" 
+                        onclick="openViewModal('${e.id}', '${e.title}', '${e.description}', '${e.username}')">
+                        ${e.title}
+                    </span>`;
+                });
+
+                grid.innerHTML += `
+                    <div class="day-card" onclick="openModal('${dateStr}')">
+                        <span class="day-number">${d}</span>
+                        ${eventsHtml}
+                    </div>
+                `;
+            }
+        }
+
+        function openModal(dateStr) {
+            if (event.target.classList.contains('event-tag')) return;
+            selectedDate = dateStr;
+            document.getElementById('selectedDateDisplay').innerText = dateStr;
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDesc').value = '';
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function openViewModal(id, title, desc, owner) {
+            event.stopPropagation();
+            selectedEventId = id;
+            document.getElementById('viewTitle').innerText = title;
+            document.getElementById('viewDesc').innerText = desc || "No description.";
+
+            const authText = document.getElementById('viewAuthor');
+            const delBtn = document.getElementById('deleteBtn');
+
+            if (owner === 'admin') {
+                authText.innerText = "📣 Public (Admin)";
+                if (user.username !== 'admin') {
+                    delBtn.style.display = 'none';
+                } else {
+                    delBtn.style.display = 'block';
+                }
+            } else {
+                authText.innerText = "👤 Personal";
+                delBtn.style.display = 'block';
+            }
+
+            document.getElementById('viewModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('eventModal').style.display = 'none'; }
+        function changeMonth(step) {
+            currentMonth += step;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        }
+    </script>
+</body>
+
+</html>

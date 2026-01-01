@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Downloader</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: #1e293b;
+            --accent-color: #ec4899;
+            --border-color: #334155;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --accent-color: #db2777;
+            --card-bg: #f1f5f9;
+            --border-color: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .home-btn {
+            text-decoration: none;
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .btn-theme {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1.2rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 2rem;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        input {
+            flex: 1;
+            min-width: 200px;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+            outline: none;
+        }
+
+        select {
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        button {
+            padding: 1rem 2rem;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            flex-grow: 1;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        /* Result Card */
+        .result-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .result-card h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .badges {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.8rem 2rem;
+            background: #22c55e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .error-msg {
+            color: #ef4444;
+            margin-top: 1rem;
+            display: none;
+            text-align: center;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header {
+                margin-bottom: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h2>Media Downloader</h2>
+        <div class="header-controls">
+            <button class="btn-theme" onclick="toggleTheme()" id="themeBtn">🌙</button>
+            <a id="backBtn" href="#" class="home-btn">← Back</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <p style="opacity: 0.7; margin-bottom: 1rem; text-align: center;">Download videos & music from YouTube,
+            Instagram, etc.</p>
+
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="Paste link OR type song name...">
+            <select id="formatSelect">
+                <option value="video">Video (MP4)</option>
+                <option value="audio">Audio (Music)</option>
+            </select>
+            <button onclick="fetchVideo()" id="fetchBtn">Get Link</button>
+        </div>
+
+        <p class="error-msg" id="errorMsg"></p>
+
+        <div class="result-card" id="resultCard">
+            <img id="thumb" src="" alt="Thumbnail">
+            <h3 id="vidTitle">Video Title</h3>
+            <div class="badges">
+                <span id="vidDuration">00:00</span> •
+                <span id="vidSite">YouTube</span>
+            </div>
+            <a href="#" id="downloadLink" class="download-btn" target="_blank" download>Download File</a>
+        </div>
+    </div>
+
+    <script>
+        // 1. Auth & Routing Logic
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) window.location.href = 'login.html';
+
+        const backBtn = document.getElementById('backBtn');
+        if (user.is_admin) {
+            backBtn.href = "admin.html";
+            backBtn.innerText = "← Back to Admin";
+        } else {
+            backBtn.href = "dashboard.html";
+            backBtn.innerText = "← Back to Dashboard";
+        }
+
+        // 2. Theme Logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            document.getElementById('themeBtn').innerText = next === 'dark' ? '🌙' : '☀️';
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeBtn').innerText = savedTheme === 'dark' ? '🌙' : '☀️';
+
+        // 3. Downloader Logic
+        async function fetchVideo() {
+            const url = document.getElementById('urlInput').value;
+            const format = document.getElementById('formatSelect').value;
+            const btn = document.getElementById('fetchBtn');
+            const card = document.getElementById('resultCard');
+            const error = document.getElementById('errorMsg');
+
+            if (!url) return alert("Please enter a URL or Name.");
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            card.style.display = 'none';
+            error.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/downloader/info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, type: format })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    document.getElementById('thumb').src = data.thumbnail;
+                    document.getElementById('vidTitle').innerText = data.title;
+                    document.getElementById('vidDuration').innerText = data.duration || "Unknown";
+                    document.getElementById('vidSite').innerText = data.site;
+
+                    const dlBtn = document.getElementById('downloadLink');
+                    dlBtn.href = data.download_url;
+                    dlBtn.innerText = data.is_audio ? "Download Audio" : "Download Video";
+
+                    card.style.display = 'flex';
+                } else {
+                    error.innerText = data.error || "Failed to fetch media.";
+                    error.style.display = 'block';
+                }
+            } catch (e) {
+                error.innerText = "Server Error. Please try again.";
+                error.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Get Link";
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,6 @@
+Flask
+pymongo
+python-dotenv
+yt_dlp
+werkzeug
+gunicorn

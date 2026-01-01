@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - All-In-One</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --accent-color: #ef4444;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --accent-color: #ef4444;
+            --card-bg: #f8fafc;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-val {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            min-width: 600px;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .green {
+            background-color: #22c55e;
+        }
+
+        .btn-logout {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* Nav Buttons */
+        .nav-btn {
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 10px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .btn-cal {
+            background: #3b82f6;
+        }
+
+        .btn-dl {
+            background: #ec4899;
+        }
+
+        .btn-game {
+            background: #f59e0b;
+        }
+
+        /* Orange for Games */
+        .nav-btn:hover {
+            opacity: 0.9;
+        }
+
+        .theme-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1.2rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nav-controls {
+                margin-top: 10px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>System Admin</h1>
+        <div class="nav-controls" style="display: flex; align-items: center; gap: 10px;">
+            <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+            <a href="calendar.html" class="nav-btn btn-cal">📅 Calendar</a>
+            <a href="downloader.html" class="nav-btn btn-dl">⬇️ Downloader</a>
+            <a href="games.html" class="nav-btn btn-game">🎮 Games</a>
+
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <section class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Server Status</div>
+            <div class="stat-val" style="color: #22c55e; font-size: 1.5rem;">
+                <span class="status-dot green"></span>Online
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-val" id="totalUsers">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Site Visits</div>
+            <div class="stat-val" id="totalVisits">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">DB Latency</div>
+            <div class="stat-val" id="latency">...</div>
+        </div>
+    </section>
+
+    <h3>User Database</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Verified</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.is_admin) {
+            alert("ACCESS DENIED: Admins only.");
+            window.location.href = "login.html";
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateIcon();
+        }
+        function updateIcon() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.getElementById('themeBtn').innerText = theme === 'dark' ? '🌙' : '☀️';
+        }
+
+        // Init Theme
+        const saved = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+        updateIcon();
+
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/api/admin/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user.username })
+                });
+
+                if (!response.ok) throw new Error("Unauthorized");
+                const data = await response.json();
+                renderDashboard(data);
+            } catch (error) { console.error(error); alert("Failed to load admin data."); }
+        }
+
+        function renderDashboard(data) {
+            document.getElementById('totalUsers').innerText = data.stats.total_users;
+            document.getElementById('totalVisits').innerText = data.stats.total_visits;
+            document.getElementById('latency').innerText = data.stats.db_latency_ms + "ms";
+
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+
+            data.users.forEach(u => {
+                const row = `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td>${u.name}</td>
+                        <td>${u.email}</td>
+                        <td>${u.is_verified ? '<span style="color:#22c55e">Yes</span>' : '<span style="color:#ef4444">No</span>'}</td>
+                        <td>${u.role || 'User'}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+        loadAdminData();
+    </script>
+</body>
+
+</html>

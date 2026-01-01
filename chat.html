@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        /* --- SAME UI STYLES AS BEFORE --- */
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --private-bg: #312e81;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .home-btn {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #chatContainer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .msg-row.mine {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.theirs {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-bubble {
+            background: var(--card-bg);
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .mine .msg-bubble {
+            background: var(--accent-color);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .theirs .msg-bubble {
+            background: var(--card-bg);
+            border-bottom-left-radius: 2px;
+            border: 1px solid #334155;
+        }
+
+        .private-msg {
+            background: var(--private-bg) !important;
+            border: 1px solid #6366f1 !important;
+        }
+
+        .sender-name {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .timestamp {
+            font-size: 0.65rem;
+            opacity: 0.6;
+            float: right;
+            margin-left: 10px;
+            margin-top: 5px;
+        }
+
+        .chat-img {
+            max-width: 200px;
+            border-radius: 8px;
+            margin-top: 5px;
+            display: block;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .chat-img:hover {
+            opacity: 0.8;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .close-lightbox {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 3rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 1rem;
+            background: var(--bg-color);
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem;
+            border-radius: 20px;
+            border: 1px solid #334155;
+            background: var(--card-bg);
+            color: white;
+            outline: none;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 80px;
+        }
+
+        .attach-btn {
+            background: #475569;
+            padding: 0.8rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h3>Global Chat</h3>
+        <a href="dashboard.html" class="home-btn">Dashboard</a>
+    </header>
+
+    <div id="chatContainer"></div>
+
+    <div class="input-area">
+        <label for="imgInput" class="attach-btn">📷</label>
+        <input type="file" id="imgInput" accept="image/*" style="display: none;" onchange="handleImageSelect()">
+
+        <input type="text" id="msgInput" placeholder="Type a message..." onkeypress="handleEnter(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div id="imageLightbox" class="lightbox" onclick="closeImage()">
+        <span class="close-lightbox">&times;</span>
+        <img id="lightboxImg" src="">
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) window.location.href = 'login.html';
+
+        let selectedImage = null;
+
+        // --- 1. CONNECT TO PYTHON SERVER ---
+        const socket = io("http://localhost:5050");
+
+        // --- 2. JOIN & LOAD HISTORY ---
+        socket.on('connect', () => {
+            console.log("Connected to Chat Server");
+            socket.emit('user_join', user.username);
+        });
+
+        // Listen for history (Last 50 messages)
+        socket.on('load_history', (messages) => {
+            const container = document.getElementById('chatContainer');
+            container.innerHTML = ''; // Clear loading state
+            messages.forEach(msg => appendMessage(msg));
+            container.scrollTop = container.scrollHeight; // Scroll to bottom
+        });
+
+        // --- 3. RECEIVE NEW MESSAGE ---
+        socket.on('receive_message', (msg) => {
+            appendMessage(msg);
+            const container = document.getElementById('chatContainer');
+            container.scrollTop = container.scrollHeight;
+        });
+
+        // --- 4. RENDER FUNCTION (The UI Logic) ---
+        function appendMessage(m) {
+            const container = document.getElementById('chatContainer');
+            const isMine = m.sender === user.username;
+
+            // Handle Private Messages Logic
+            // If it's private and NOT for me and NOT sent by me, hide it.
+            if (m.recipient && m.recipient !== user.username && m.sender !== user.username) {
+                return;
+            }
+
+            const isPrivate = m.recipient !== null;
+            let bubbleClass = isMine ? 'mine' : 'theirs';
+            let contentClass = isPrivate ? 'private-msg' : '';
+
+            let imgHtml = '';
+            if (m.image) {
+                imgHtml = `<img src="${m.image}" class="chat-img" onclick="openImage('${m.image}')">`;
+            }
+
+            let metaText = m.sender;
+            if (isPrivate) metaText += ` 🔒 (Private)`;
+
+            const html = `
+                <div class="msg-row ${bubbleClass}">
+                    <span class="sender-name">${metaText}</span>
+                    <div class="msg-bubble ${contentClass}">
+                        ${m.content}
+                        ${imgHtml}
+                        <span class="timestamp">${m.timestamp || ''}</span>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += html;
+        }
+
+        // --- 5. SEND FUNCTION ---
+        function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const content = input.value;
+
+            if (!content && !selectedImage) return;
+
+            socket.emit('send_message', {
+                username: user.username,
+                content: content,
+                image: selectedImage
+            });
+
+            // Clear Input
+            input.value = '';
+            selectedImage = null;
+            document.getElementById('msgInput').placeholder = "Type a message...";
+        }
+
+        // --- HELPERS (Image, Enter Key, etc) ---
+        function handleImageSelect() {
+            const file = document.getElementById('imgInput').files[0];
+            if (!file) return;
+            // Max 1MB for Socket (Sockets don't like huge files)
+            if (file.size > 1 * 1024 * 1024) return alert("Image too large for live chat (Max 1MB).");
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                selectedImage = e.target.result;
+                document.getElementById('msgInput').placeholder = "📷 Image attached! Click Send...";
+                document.getElementById('msgInput').focus();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+        function openImage(src) { document.getElementById('lightboxImg').src = src; document.getElementById('imageLightbox').style.display = 'flex'; }
+        function closeImage() { document.getElementById('imageLightbox').style.display = 'none'; }
+
+    </script>
+</body>
+
+</html>
