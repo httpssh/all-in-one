@@ -195,12 +195,11 @@ def delete_event():
         return jsonify({"message": "Deleted"}), 200
     return jsonify({"error": "Permission denied or not found"}), 403
 
-# --- 7. DOWNLOADER ROUTE (The Critical Fix) ---
+# downloader
 
 
 @app.route('/api/downloader/info', methods=['POST'])
 def get_video_info():
-    # 1. Check Library
     if not yt_dlp:
         return jsonify({"error": "Server Error: yt_dlp library missing."}), 500
 
@@ -211,29 +210,44 @@ def get_video_info():
 
     print(f"📥 Processing: {url}")
 
-    # 2. Config for Serverless (No FFmpeg)
+    # 1. PATH TO COOKIES
+    # We look for cookies.txt in the main folder (where index.html is)
+    cookies_path = os.path.join(os.getcwd(), 'cookies.txt')
+
+    # 2. ADVANCED CONFIG TO BYPASS YOUTUBE
     ydl_opts = {
-        'format': 'best[ext=mp4]/best',  # Single file download
+        'format': 'best[ext=mp4]/best',
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
         'geo_bypass': True,
         'extract_flat': False,
+
+        # SPOOFING (Look like a real Chrome Browser on Windows)
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us,en;q=0.5',
+            'Sec-Fetch-Mode': 'navigate',
+        }
     }
 
+    # 3. USE COOKIES IF FILE EXISTS
+    if os.path.exists(cookies_path):
+        print("🍪 Found cookies.txt! Using it to bypass bot check.")
+        ydl_opts['cookiefile'] = cookies_path
+    else:
+        print("⚠️ No cookies.txt found. YouTube might block this.")
+
     if data.get('type') == 'audio':
-        ydl_opts['format'] = 'bestaudio/best'  # Best single audio file
+        ydl_opts['format'] = 'bestaudio/best'
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # 3. Fetch Info
             info = ydl.extract_info(url, download=False)
-
-            # Handle Search results or Playlists
             if 'entries' in info:
                 info = info['entries'][0]
 
-            # 4. Success Response
             return jsonify({
                 "title": info.get('title', 'Unknown Title'),
                 "thumbnail": info.get('thumbnail', ''),
@@ -244,14 +258,11 @@ def get_video_info():
             }), 200
 
     except Exception as e:
-        # 5. Detailed Error Reporting
         error_msg = str(e)
         print(f"⚠️ Downloader Error: {error_msg}")
 
-        if "HTTP Error 403" in error_msg:
-            return jsonify({"error": "YouTube blocked the server (403 Forbidden). Try Instagram/TikTok."}), 500
-        elif "Sign in" in error_msg:
-            return jsonify({"error": "Video requires login (Age restricted)."}), 500
+        if "Sign in" in error_msg or "403" in error_msg:
+            return jsonify({"error": "YouTube blocked the server. Please add cookies.txt to fix this!"}), 500
         else:
             return jsonify({"error": f"Failed: {error_msg}"}), 500
 
