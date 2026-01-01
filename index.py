@@ -5,13 +5,14 @@ from dotenv import load_dotenv
 import os
 import datetime
 import secrets
+import sys  # Needed for Render logging
 
-# --- 1. SAFE IMPORTS (Prevents Server Crash) ---
+# --- 1. SAFE LIBRARY IMPORT ---
 try:
     import yt_dlp
 except ImportError:
     yt_dlp = None
-    print("WARNING: yt_dlp not found. Downloader will not work.")
+    print("❌ CRITICAL: yt_dlp library not found.", file=sys.stderr)
 
 # --- 2. SETUP & CONFIG ---
 app = Flask(__name__)
@@ -29,9 +30,9 @@ try:
     events_collection = db["events"]
     # Test connection
     client.admin.command('ping')
-    print("✅ Connected to MongoDB")
+    print("✅ Connected to MongoDB", file=sys.stderr)
 except Exception as e:
-    print(f"❌ DB Connection Failed: {e}")
+    print(f"❌ DB Connection Failed: {e}", file=sys.stderr)
 
 # --- 3. STATIC FILE ROUTES (Serves HTML/CSS) ---
 
@@ -61,7 +62,7 @@ def signup():
         "username": data['username'],
         "email": data['email'],
         "password": generate_password_hash(data['password']),
-        "is_verified": False,  # Set to True if you want instant verification
+        "is_verified": False,
         "role": "user",
         "created_at": datetime.datetime.utcnow()
     }
@@ -134,7 +135,7 @@ def admin_data():
     users = list(users_collection.find({}, {"_id": 0, "password": 0}))
     stats = {
         "total_users": len(users),
-        "total_visits": 1000,  # Placeholder
+        "total_visits": 1240,  # Placeholder
         "db_latency_ms": 25
     }
     return jsonify({"users": users, "stats": stats}), 200
@@ -159,8 +160,6 @@ def promote_user():
 
 @app.route('/api/calendar/events', methods=['POST'])
 def get_events():
-    # Return all events (public + private)
-    # Ideally filter by user, but for now returning all for simplicity
     events = list(events_collection.find({}, {"_id": 0}))
     return jsonify(events), 200
 
@@ -182,24 +181,25 @@ def add_event():
 @app.route('/api/calendar/delete', methods=['POST'])
 def delete_event():
     data = request.json
-    # Allow deletion if user owns event OR user is admin
     user = users_collection.find_one({"username": data['username']})
     is_admin = user and user.get('role') == 'admin'
 
     query = {"id": data['id']}
     if not is_admin:
-        query["username"] = data['username']  # Restrict to owner
+        query["username"] = data['username']
 
     result = events_collection.delete_one(query)
     if result.deleted_count > 0:
         return jsonify({"message": "Deleted"}), 200
-    return jsonify({"error": "Permission denied or not found"}), 403
+    return jsonify({"error": "Permission denied"}), 403
 
-# downloader
+# --- 7. DOWNLOADER ROUTE (WITH COOKIE HUNTING) ---
 
 
 @app.route('/api/downloader/info', methods=['POST'])
 def get_video_info():
+    print("--- STARTING DOWNLOAD REQUEST ---", file=sys.stderr)
+
     if not yt_dlp:
         return jsonify({"error": "Server Error: yt_dlp library missing."}), 500
 
@@ -208,46 +208,52 @@ def get_video_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    print(f"📥 Processing: {url}")
+    # 1. FIND COOKIES FILE
+    # We look in the root folder and the api folder
+    cwd = os.getcwd()
+    cookies_path = None
+    possible_paths = [
+        os.path.join(cwd, 'cookies.txt'),
+        os.path.join(cwd, 'api', 'cookies.txt')
+    ]
 
-    # 1. PATH TO COOKIES
-    # We look for cookies.txt in the main folder (where index.html is)
-    cookies_path = os.path.join(os.getcwd(), 'cookies.txt')
+    for path in possible_paths:
+        if os.path.exists(path):
+            cookies_path = path
+            print(f"✅ FOUND COOKIES AT: {path}", file=sys.stderr)
+            break
 
-    # 2. ADVANCED CONFIG TO BYPASS YOUTUBE
+    if not cookies_path:
+        print(
+            f"❌ COOKIES NOT FOUND in {cwd}. YouTube will likely block this.", file=sys.stderr)
+
+    # 2. CONFIG
     ydl_opts = {
-        'format': 'best[ext=mp4]/best',
+        'format': 'best[ext=mp4]/best',  # Single file (No FFmpeg)
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
         'geo_bypass': True,
         'extract_flat': False,
-
-        # SPOOFING (Look like a real Chrome Browser on Windows)
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-us,en;q=0.5',
-            'Sec-Fetch-Mode': 'navigate',
         }
     }
 
-    # 3. USE COOKIES IF FILE EXISTS
-    if os.path.exists(cookies_path):
-        print("🍪 Found cookies.txt! Using it to bypass bot check.")
+    if cookies_path:
         ydl_opts['cookiefile'] = cookies_path
-    else:
-        print("⚠️ No cookies.txt found. YouTube might block this.")
 
     if data.get('type') == 'audio':
         ydl_opts['format'] = 'bestaudio/best'
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # 3. FETCH
             info = ydl.extract_info(url, download=False)
             if 'entries' in info:
                 info = info['entries'][0]
 
+            print("✅ Metadata extracted successfully", file=sys.stderr)
             return jsonify({
                 "title": info.get('title', 'Unknown Title'),
                 "thumbnail": info.get('thumbnail', ''),
@@ -259,10 +265,10 @@ def get_video_info():
 
     except Exception as e:
         error_msg = str(e)
-        print(f"⚠️ Downloader Error: {error_msg}")
+        print(f"⚠️ DOWNLOAD ERROR: {error_msg}", file=sys.stderr)
 
         if "Sign in" in error_msg or "403" in error_msg:
-            return jsonify({"error": "YouTube blocked the server. Please add cookies.txt to fix this!"}), 500
+            return jsonify({"error": "YouTube blocked the server. (Cookies failed or Bot detected)"}), 500
         else:
             return jsonify({"error": f"Failed: {error_msg}"}), 500
 
